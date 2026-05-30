@@ -1,0 +1,69 @@
+version: '3.9'
+
+services:
+  # ── PostgreSQL ─────────────────────────────────────────────────────────────
+  postgres:
+    image: postgres:16-alpine
+    container_name: smartcoach-postgres
+    environment:
+      POSTGRES_DB: smartcoach
+      POSTGRES_USER: smartcoach
+      POSTGRES_PASSWORD: smartcoach
+    ports:
+      - '5432:5432'
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./backend/sql/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql
+      - ./backend/sql/seed.sql:/docker-entrypoint-initdb.d/02-seed.sql
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U smartcoach']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  # ── Backend ────────────────────────────────────────────────────────────────
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: smartcoach-backend
+    ports:
+      - '3001:3001'
+    environment:
+      NODE_ENV: production
+      PORT: 3001
+      DATABASE_URL: postgresql://smartcoach:smartcoach@postgres:5432/smartcoach
+      FRONTEND_URL: http://localhost:5173
+      GROQ_API_KEY: ${GROQ_API_KEY}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # ── Frontend ───────────────────────────────────────────────────────────────
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: smartcoach-frontend
+    ports:
+      - '5173:80'
+    environment:
+      VITE_API_BASE_URL: http://localhost:3001/api
+    depends_on:
+      - backend
+    restart: unless-stopped
+
+  # ── Adminer (Web Database Viewer) ──────────────────────────────────────────
+  adminer:
+    image: adminer
+    container_name: smartcoach-adminer
+    restart: unless-stopped
+    ports:
+      - '8080:8080'
+    depends_on:
+      - postgres
+
+volumes:
+  postgres_data:
+    driver: local
