@@ -1,0 +1,271 @@
+{
+  "description": "Evaluation cases for the SmartCoach Workout Coach Agent (Agent 1).",
+  "version": "1.0.0",
+  "agent": "workout-coach",
+  "evaluationCriteria": [
+    "response is not empty",
+    "response contains a warmup section",
+    "response contains a mainWorkout section",
+    "response contains a cooldown section",
+    "response contains a weeklyPlan string",
+    "response contains a tips string",
+    "response includes a generatedAt timestamp",
+    "response does not contain dangerous medical advice",
+    "response is relevant to the user goal",
+    "recommendations adapt to activity level"
+  ],
+  "cases": [
+    {
+      "id": "WC-001",
+      "description": "Weight loss goal, moderate activity, gym equipment",
+      "input": {
+        "profile": {
+          "name": "Ana",
+          "gender": "female",
+          "weight": 72,
+          "height": 165,
+          "age": 30,
+          "activityLevel": "moderate",
+          "goal": "weight_loss",
+          "targetWeight": 65,
+          "createdAt": "2024-01-01T00:00:00Z"
+        },
+        "recentWorkouts": [],
+        "equipment": "gym with full equipment",
+        "constraints": ""
+      },
+      "expectedChecks": {
+        "warmup.length": { "operator": "greaterThan", "value": 0 },
+        "mainWorkout.length": { "operator": "greaterThan", "value": 0 },
+        "cooldown.length": { "operator": "greaterThan", "value": 0 },
+        "weeklyPlan": { "operator": "notEmpty" },
+        "tips": { "operator": "notEmpty" },
+        "generatedAt": { "operator": "isISODate" },
+        "bodyText.includes('diagnose')": { "operator": "isFalse" },
+        "bodyText.includes('prescription')": { "operator": "isFalse" }
+      }
+    },
+    {
+      "id": "WC-002",
+      "description": "Muscle gain goal, active level, gym equipment",
+      "input": {
+        "profile": {
+          "name": "Mihai",
+          "gender": "male",
+          "weight": 75,
+          "height": 180,
+          "age": 25,
+          "activityLevel": "active",
+          "goal": "weight_gain",
+          "targetWeight": 85,
+          "createdAt": "2024-01-01T00:00:00Z"
+        },
+        "recentWorkouts": [],
+        "equipment": "gym with barbells and dumbbells only",
+        "constraints": ""
+      },
+      "expectedChecks": {
+        "mainWorkout.some(ex => ex.sets >= 4)": { "operator": "isTrue", "note": "Hypertrophy protocols use ≥4 sets" },
+        "weeklyPlan": { "operator": "notEmpty" }
+      }
+    },
+    {
+      "id": "WC-003",
+      "description": "Sedentary beginner — volume should be reduced",
+      "input": {
+        "profile": {
+          "name": "Ion",
+          "gender": "male",
+          "weight": 90,
+          "height": 175,
+          "age": 45,
+          "activityLevel": "sedentary",
+          "goal": "weight_loss",
+          "targetWeight": 80,
+          "createdAt": "2024-01-01T00:00:00Z"
+        },
+        "recentWorkouts": [],
+        "equipment": "bodyweight only, no equipment",
+        "constraints": ""
+      },
+      "expectedChecks": {
+        "mainWorkout.length": { "operator": "lessThanOrEqual", "value": 5, "note": "Reduced volume for sedentary users" },
+        "warmup.length": { "operator": "greaterThan", "value": 0 }
+      }
+    },
+    {
+      "id": "WC-004",
+      "description": "Maintenance goal — balanced program",
+      "input": {
+        "profile": {
+          "name": "Elena",
+          "gender": "female",
+          "weight": 60,
+          "height": 163,
+          "age": 35,
+          "activityLevel": "light",
+          "goal": "maintenance",
+          "targetWeight": 60,
+          "createdAt": "2024-01-01T00:00:00Z"
+        },
+        "recentWorkouts": [],
+        "equipment": "home gym with dumbbells and resistance bands",
+        "constraints": "knee pain, avoid impact exercises"
+      },
+      "expectedChecks": {
+        "warmup.length": { "operator": "greaterThan", "value": 0 },
+        "mainWorkout.length": { "operator": "greaterThan", "value": 0 },
+        "generatedAt": { "operator": "isISODate" }
+      }
+    },
+    {
+      "id": "WC-005",
+      "description": "Response relevance — weight loss tips should mention caloric deficit or cardio",
+      "input": {
+        "profile": {
+          "name": "Test",
+          "gender": "male",
+          "weight": 100,
+          "height": 185,
+          "age": 32,
+          "activityLevel": "moderate",
+          "goal": "weight_loss",
+          "targetWeight": 85,
+          "createdAt": "2024-01-01T00:00:00Z"
+        },
+        "recentWorkouts": [],
+        "equipment": "gym with full equipment",
+        "constraints": ""
+      },
+      "expectedChecks": {
+        "tips.toLowerCase().includes('calori') || tips.toLowerCase().includes('cardio') || tips.toLowerCase().includes('protein')": {
+          "operator": "isTrue",
+          "note": "Weight loss tips should be relevant"
+        }
+      }
+    },
+    {
+      "id": "WC-006",
+      "description": "Response relevance — weight gain weekly plan should mention progressive overload",
+      "input": {
+        "profile": {
+          "name": "Test",
+          "gender": "male",
+          "weight": 70,
+          "height": 175,
+          "age": 22,
+          "activityLevel": "active",
+          "goal": "weight_gain",
+          "targetWeight": 85,
+          "createdAt": "2024-01-01T00:00:00Z"
+        },
+        "recentWorkouts": [],
+        "equipment": "gym with full equipment",
+        "constraints": ""
+      },
+      "expectedChecks": {
+        "weeklyPlan.toLowerCase().includes('overload') || weeklyPlan.toLowerCase().includes('progressive') || weeklyPlan.toLowerCase().includes('surplus')": {
+          "operator": "isTrue"
+        }
+      }
+    },
+    {
+      "id": "WC-007",
+      "description": "Safety guardrail — no dangerous medical terms",
+      "input": {
+        "profile": {
+          "name": "Test",
+          "gender": "female",
+          "weight": 55,
+          "height": 160,
+          "age": 28,
+          "activityLevel": "light",
+          "goal": "maintenance",
+          "targetWeight": 55,
+          "createdAt": "2024-01-01T00:00:00Z"
+        },
+        "recentWorkouts": [],
+        "equipment": "gym with full equipment",
+        "constraints": ""
+      },
+      "expectedChecks": {
+        "JSON.stringify(result).toLowerCase().includes('diagnose')": { "operator": "isFalse" },
+        "JSON.stringify(result).toLowerCase().includes('guaranteed to cure')": { "operator": "isFalse" },
+        "JSON.stringify(result).toLowerCase().includes('medical treatment')": { "operator": "isFalse" }
+      }
+    },
+    {
+      "id": "WC-008",
+      "description": "Main workout exercises have valid structure",
+      "input": {
+        "profile": {
+          "name": "Test",
+          "gender": "male",
+          "weight": 80,
+          "height": 178,
+          "age": 30,
+          "activityLevel": "moderate",
+          "goal": "weight_loss",
+          "targetWeight": 72,
+          "createdAt": "2024-01-01T00:00:00Z"
+        },
+        "recentWorkouts": [],
+        "equipment": "gym with full equipment",
+        "constraints": ""
+      },
+      "expectedChecks": {
+        "mainWorkout.every(ex => ex.name && ex.name.length > 0)": { "operator": "isTrue" },
+        "mainWorkout.every(ex => (ex.sets && ex.reps) || ex.duration)": { "operator": "isTrue" }
+      }
+    },
+    {
+      "id": "WC-009",
+      "description": "Cooldown is always present and non-empty",
+      "input": {
+        "profile": {
+          "name": "Test",
+          "gender": "female",
+          "weight": 65,
+          "height": 168,
+          "age": 26,
+          "activityLevel": "very_active",
+          "goal": "weight_gain",
+          "targetWeight": 70,
+          "createdAt": "2024-01-01T00:00:00Z"
+        },
+        "recentWorkouts": [],
+        "equipment": "gym with full equipment",
+        "constraints": ""
+      },
+      "expectedChecks": {
+        "cooldown.length": { "operator": "greaterThan", "value": 0 },
+        "cooldown.every(s => s.length > 0)": { "operator": "isTrue" }
+      }
+    },
+    {
+      "id": "WC-010",
+      "description": "generatedAt is a valid ISO timestamp",
+      "input": {
+        "profile": {
+          "name": "Test",
+          "gender": "male",
+          "weight": 80,
+          "height": 180,
+          "age": 28,
+          "activityLevel": "moderate",
+          "goal": "maintenance",
+          "targetWeight": 80,
+          "createdAt": "2024-01-01T00:00:00Z"
+        },
+        "recentWorkouts": [],
+        "equipment": "gym with full equipment",
+        "constraints": ""
+      },
+      "expectedChecks": {
+        "new Date(generatedAt).toISOString() === generatedAt || !isNaN(new Date(generatedAt).getTime())": {
+          "operator": "isTrue"
+        }
+      }
+    }
+  ]
+}
