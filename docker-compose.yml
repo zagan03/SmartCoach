@@ -34,7 +34,7 @@ services:
       PORT: 3001
       DATABASE_URL: postgresql://smartcoach:smartcoach@postgres:5432/smartcoach
       FRONTEND_URL: http://localhost:5173
-      GROQ_API_KEY: ${GROQ_API_KEY}
+      # GROQ_API_KEY: ${GROQ_API_KEY}  # Uncomment if you have a Groq key
     depends_on:
       postgres:
         condition: service_healthy
@@ -53,16 +53,6 @@ services:
     depends_on:
       - backend
     restart: unless-stopped
-
-  # ── Adminer (Web Database Viewer) ──────────────────────────────────────────
-  adminer:
-    image: adminer
-    container_name: smartcoach-adminer
-    restart: unless-stopped
-    ports:
-      - '8080:8080'
-    depends_on:
-      - postgres
 
 volumes:
   postgres_data:
