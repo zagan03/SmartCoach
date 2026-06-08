@@ -14,7 +14,8 @@ export function Navbar() {
     { to: '/dashboard', label: 'Dashboard', icon: '🏠' },
     { to: '/weight', label: 'Greutate', icon: '⚖️' },
     { to: '/workouts', label: 'Antrenamente', icon: '🏋️' },
-    { to: '/agent', label: 'Agent AI', icon: '🤖' },
+    { to: '/workout-coach', label: 'Coach AI', icon: '🏆' },
+    { to: '/agent', label: 'Nutriție AI', icon: '🤖' },
     { to: '/profile', label: 'Profil', icon: '👤' },
   ];
 

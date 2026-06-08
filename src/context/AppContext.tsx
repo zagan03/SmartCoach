@@ -1,8 +1,29 @@
+/**
+ * AppContext — Local Backend Version
+ *
+ * Replaces Firebase Firestore calls with REST API calls to the local
+ * Node.js + Express + PostgreSQL backend.
+ *
+ * All state management logic is preserved. Only the persistence layer changed.
+ */
+
 import { createContext, useContext, useState, useEffect } from 'react';
 import { UserProfile, WeightEntry, WorkoutSession, AgentAnalysis } from '../types';
-import { db } from '../firebase';
-import { doc, getDoc, setDoc, collection, getDocs, deleteDoc, updateDoc } from 'firebase/firestore';
+import { profileApi, progressApi, workoutsApi, agentsApi, ApiNutritionResult } from '../services/api';
 import { useAuth } from './AuthContext';
+
+// Convert API nutrition result → AgentAnalysis (frontend type)
+function toAgentAnalysis(r: ApiNutritionResult): AgentAnalysis {
+  return {
+    avgWeightLast7: r.avgWeightLast7,
+    avgWeightPrev7: r.avgWeightPrev7,
+    currentKcal: r.currentKcal,
+    suggestedKcal: r.calories,
+    adjustment: r.adjustment,
+    aiMessage: `${r.progressFeedback}\n\n📅 Meal Plan Today:\n${r.mealPlanSummary}\n\n💧 Hydration goal: ${r.hydration}\n🥩 Protein goal: ${r.protein}g`,
+    generatedAt: r.generatedAt,
+  };
+}
 
 interface AppContextType {
   profile: UserProfile | null;
@@ -10,7 +31,7 @@ interface AppContextType {
   workoutSessions: WorkoutSession[];
   lastAnalysis: AgentAnalysis | null;
   isLoading: boolean;
-  
+
   setProfile: (p: UserProfile) => Promise<void>;
   addWeightEntry: (entry: WeightEntry) => Promise<void>;
   editWeightEntry: (id: string, weight: number) => Promise<void>;
@@ -32,36 +53,33 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [isLoadingData, setIsLoadingData] = useState(true);
 
   useEffect(() => {
-    async function loadData(uid: string) {
+    async function loadData(userId: string) {
       try {
-        const userDocRef = doc(db, 'users', uid);
-        const userSnap = await getDoc(userDocRef);
-        
-        if (userSnap.exists()) {
-          const data = userSnap.data();
-          if (data.profile) setProfileState(data.profile);
-          if (data.lastAnalysis) setLastAnalysisState(data.lastAnalysis);
+        // Load profile
+        try {
+          const p = await profileApi.get(userId);
+          setProfileState(p as unknown as UserProfile);
+        } catch {
+          // Profile not yet created — that's OK
         }
 
-        const weightsSnap = await getDocs(collection(db, `users/${uid}/weightEntries`));
-        const weights = weightsSnap.docs.map(d => d.data() as WeightEntry);
-        setWeightEntries(weights);
+        // Load weight entries
+        const weights = await progressApi.list(userId);
+        setWeightEntries(weights as unknown as WeightEntry[]);
 
-        const workoutsSnap = await getDocs(collection(db, `users/${uid}/workoutSessions`));
-        const workouts = workoutsSnap.docs.map(d => d.data() as WorkoutSession);
-        setWorkoutSessions(workouts);
-        
+        // Load workouts
+        const workouts = await workoutsApi.list(userId);
+        setWorkoutSessions(workouts as unknown as WorkoutSession[]);
       } catch (err) {
-        console.error("Error loading data from Firebase:", err);
+        console.error('Error loading data from backend:', err);
       } finally {
         setIsLoadingData(false);
       }
     }
-    
+
     if (isLoadingAuth) return;
 
     if (!user) {
-      // Clear data if logged out
       setProfileState(null);
       setWeightEntries([]);
       setWorkoutSessions([]);
@@ -70,61 +88,65 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       return;
     }
 
-    if (import.meta.env.VITE_FIREBASE_PROJECT_ID) {
-      setIsLoadingData(true);
-      loadData(user.uid);
-    } else {
-      setIsLoadingData(false);
-      console.warn("Firebase credentials missing, app will not save data.");
-    }
+    setIsLoadingData(true);
+    loadData(user.id);
   }, [user, isLoadingAuth]);
 
   const setProfile = async (p: UserProfile) => {
     if (!user) return;
     setProfileState(p);
-    await setDoc(doc(db, 'users', user.uid), { profile: p }, { merge: true });
+    await profileApi.upsert(user.id, p as Parameters<typeof profileApi.upsert>[1]);
   };
 
   const addWeightEntry = async (entry: WeightEntry) => {
     if (!user) return;
-    setWeightEntries(prev => [...prev, entry]);
-    await setDoc(doc(db, `users/${user.uid}/weightEntries`, entry.id), entry);
+    setWeightEntries((prev) => [...prev, entry]);
+    await progressApi.add(user.id, { date: entry.date, weight: entry.weight });
   };
 
   const editWeightEntry = async (id: string, weight: number) => {
     if (!user) return;
-    setWeightEntries(prev => prev.map(e => e.id === id ? { ...e, weight } : e));
-    await updateDoc(doc(db, `users/${user.uid}/weightEntries`, id), { weight });
+    setWeightEntries((prev) => prev.map((e) => (e.id === id ? { ...e, weight } : e)));
+    await progressApi.update(id, weight);
   };
 
   const removeWeightEntry = async (id: string) => {
     if (!user) return;
-    setWeightEntries(prev => prev.filter(e => e.id !== id));
-    await deleteDoc(doc(db, `users/${user.uid}/weightEntries`, id));
+    setWeightEntries((prev) => prev.filter((e) => e.id !== id));
+    await progressApi.delete(id);
   };
 
   const addWorkoutSession = async (session: WorkoutSession) => {
     if (!user) return;
-    setWorkoutSessions(prev => [...prev, session]);
-    await setDoc(doc(db, `users/${user.uid}/workoutSessions`, session.id), session);
+    setWorkoutSessions((prev) => [...prev, session]);
+    await workoutsApi.create(user.id, {
+      date: session.date,
+      exercises: session.exercises as Parameters<typeof workoutsApi.create>[1]['exercises'],
+      notes: session.notes,
+    });
   };
 
   const editWorkoutSession = async (session: WorkoutSession) => {
     if (!user) return;
-    setWorkoutSessions(prev => prev.map(s => s.id === session.id ? session : s));
-    await setDoc(doc(db, `users/${user.uid}/workoutSessions`, session.id), session);
+    setWorkoutSessions((prev) => prev.map((s) => (s.id === session.id ? session : s)));
+    await workoutsApi.update(session.id, {
+      date: session.date,
+      exercises: session.exercises as Parameters<typeof workoutsApi.update>[1]['exercises'],
+      notes: session.notes,
+    });
   };
 
   const removeWorkoutSession = async (id: string) => {
     if (!user) return;
-    setWorkoutSessions(prev => prev.filter(s => s.id !== id));
-    await deleteDoc(doc(db, `users/${user.uid}/workoutSessions`, id));
+    setWorkoutSessions((prev) => prev.filter((s) => s.id !== id));
+    await workoutsApi.delete(id);
   };
 
   const setLastAnalysis = async (a: AgentAnalysis) => {
     if (!user) return;
     setLastAnalysisState(a);
-    await setDoc(doc(db, 'users', user.uid), { lastAnalysis: a }, { merge: true });
+    // Analysis is re-generated on demand; no separate storage endpoint needed.
+    // The backend logs it in agent_logs automatically.
   };
 
   const isLoading = isLoadingAuth || isLoadingData;
@@ -162,6 +184,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     </AppContext.Provider>
   );
 }
+
+// Expose agentsApi for use in AgentPage and WorkoutCoachPage
+export { agentsApi, toAgentAnalysis };
 
 export function useApp() {
   const context = useContext(AppContext);

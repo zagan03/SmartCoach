@@ -1,133 +1,49 @@
 import { useState } from 'react';
 import { useApp } from '../context/AppContext';
+import { agentsApi, toAgentAnalysis } from '../context/AppContext';
 import { UserProfile, WeightEntry, AgentAnalysis } from '../types';
 import { calculateRecommendedKcal } from '../utils/calculations';
 import { NutritionAgentCard } from '../components/NutritionAgentCard';
+import { useAuth } from '../context/AuthContext';
 
-function computeNutritionAnalysis(
+// Local computation for display purposes (keeps the UI stats in sync)
+function computeLocalStats(
   profile: UserProfile,
   weightEntries: WeightEntry[]
-): { avgLast7: number; avgPrev7: number; adjustment: number; newKcal: number } {
+): { avgLast7: number; avgPrev7: number } {
   const sorted = [...weightEntries].sort((a, b) => b.date.localeCompare(a.date));
-
   const today = new Date();
 
-  const last7 = sorted.filter(e => {
+  const last7 = sorted.filter((e) => {
     const diff = (today.getTime() - new Date(e.date).getTime()) / (1000 * 60 * 60 * 24);
     return diff <= 7;
   });
-
-  const prev7 = sorted.filter(e => {
+  const prev7 = sorted.filter((e) => {
     const diff = (today.getTime() - new Date(e.date).getTime()) / (1000 * 60 * 60 * 24);
     return diff > 7 && diff <= 14;
   });
 
-  const avgLast7 = last7.length > 0
-    ? last7.reduce((s, e) => s + e.weight, 0) / last7.length
-    : profile.weight;
-
-  const avgPrev7 = prev7.length > 0
-    ? prev7.reduce((s, e) => s + e.weight, 0) / prev7.length
-    : profile.weight;
-
-  const currentKcal = calculateRecommendedKcal(profile);
-  let adjustment = 0;
-
-  const weeklyChange = avgLast7 - avgPrev7;
-
-  if (profile.goal === 'weight_loss') {
-    if (weeklyChange > -0.3) adjustment = -150;
-  } else if (profile.goal === 'weight_gain') {
-    if (weeklyChange < 0.2) adjustment = +150;
-  } else {
-    if (Math.abs(weeklyChange) > 0.5) {
-      adjustment = weeklyChange > 0 ? -100 : +100;
-    }
-  }
+  const avgLast7 =
+    last7.length > 0 ? last7.reduce((s, e) => s + e.weight, 0) / last7.length : profile.weight;
+  const avgPrev7 =
+    prev7.length > 0 ? prev7.reduce((s, e) => s + e.weight, 0) / prev7.length : profile.weight;
 
   return {
     avgLast7: Math.round(avgLast7 * 10) / 10,
     avgPrev7: Math.round(avgPrev7 * 10) / 10,
-    adjustment,
-    newKcal: currentKcal + adjustment,
   };
-}
-
-async function callNutritionAgent(
-  profile: UserProfile,
-  avgLast7: number,
-  avgPrev7: number,
-  currentKcal: number,
-  newKcal: number,
-  adjustment: number
-): Promise<string> {
-  const goalLabel = {
-    weight_loss: 'scădere în greutate',
-    weight_gain: 'creștere în greutate',
-    maintenance: 'mentenanță',
-  }[profile.goal];
-
-  const weeklyChange = avgLast7 - avgPrev7;
-  const changeStr = weeklyChange >= 0
-    ? `+${weeklyChange.toFixed(1)} kg`
-    : `${weeklyChange.toFixed(1)} kg`;
-
-  const prompt = `Ești un antrenor de nutriție profesionist. Răspunde DOAR în limba română.
-
-Date utilizator:
-- Nume: ${profile.name}
-- Obiectiv: ${goalLabel}
-- Greutate medie săptămâna trecută (zilele 8-14): ${avgPrev7} kg
-- Greutate medie săptămâna aceasta (ultimele 7 zile): ${avgLast7} kg
-- Schimbare săptămânală: ${changeStr}
-- Greutate țintă: ${profile.targetWeight} kg
-- Calorii recomandate până acum: ${currentKcal} kcal/zi
-- Calorii recomandate noi: ${newKcal} kcal/zi (ajustare: ${adjustment > 0 ? '+' : ''}${adjustment} kcal)
-
-Scrie un paragraf de 8-12 propoziții care:
-1. Comentează progresul din această săptămână față de săptămâna trecută
-2. Explică DE CE se ajustează caloriile (sau DE CE NU se ajustează dacă adjustment = 0)
-3. Oferă UN sfat practic concret pentru săptămâna viitoare
-4. Ofera si un meal plan pentru ziua de astazi incepand cu ora la care user-ul a postat prima data greutatea din acea zi
-Tonul să fie cald, motivant și specific. Nu folosi bullet points. Scrie ca un antrenor care vorbește direct cu clientul.`;
-
-  const apiKey = import.meta.env.VITE_GROQ_API_KEY;
-  if (!apiKey || apiKey === 'your_api_key_here') {
-    throw new Error("Cheia API Groq nu este configurată corect în fișierul .env");
-  }
-
-  const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${apiKey}`
-    },
-    body: JSON.stringify({
-      model: 'llama-3.3-70b-versatile',
-      messages: [{ role: 'user', content: prompt }],
-      temperature: 0.7,
-      max_tokens: 500,
-    }),
-  });
-
-  if (!response.ok) {
-    const err = await response.json();
-    throw new Error(err.error?.message || 'Eroare la apelul API Groq.');
-  }
-
-  const data = await response.json();
-  return data.choices[0].message.content;
 }
 
 export function AgentPage() {
   const { profile, weightEntries, lastAnalysis, setLastAnalysis } = useApp();
+  const { user } = useAuth();
 
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  if (!profile) return null;
+  if (!profile || !user) return null;
 
-  const hasEnoughData = weightEntries.length >= 3;
+  const hasEnoughData = weightEntries.length >= 1;
 
   const handleRunAnalysis = async () => {
     if (!hasEnoughData) return;
@@ -136,35 +52,21 @@ export function AgentPage() {
     setError(null);
 
     try {
-      const stats = computeNutritionAnalysis(profile, weightEntries);
+      // Call backend agent (which handles Groq or deterministic fallback)
+      const result = await agentsApi.nutritionProgress(user.id);
 
-      const aiMessage = await callNutritionAgent(
-        profile,
-        stats.avgLast7,
-        stats.avgPrev7,
-        calculateRecommendedKcal(profile),
-        stats.newKcal,
-        stats.adjustment
-      );
-
-      const newAnalysis: AgentAnalysis = {
-        avgWeightLast7: stats.avgLast7,
-        avgWeightPrev7: stats.avgPrev7,
-        currentKcal: calculateRecommendedKcal(profile),
-        suggestedKcal: stats.newKcal,
-        adjustment: stats.adjustment,
-        aiMessage,
-        generatedAt: new Date().toISOString()
-      };
-
-      setLastAnalysis(newAnalysis);
-
-    } catch (err: any) {
-      setError(err.message || 'A apărut o eroare necunoscută.');
+      const newAnalysis: AgentAnalysis = toAgentAnalysis(result);
+      await setLastAnalysis(newAnalysis);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'A apărut o eroare necunoscută.';
+      setError(msg);
     } finally {
       setIsLoading(false);
     }
   };
+
+  const stats = computeLocalStats(profile, weightEntries);
+  const currentKcal = calculateRecommendedKcal(profile);
 
   return (
     <div className="flex flex-col gap-8 max-w-3xl mx-auto">
@@ -177,13 +79,31 @@ export function AgentPage() {
         </div>
       </div>
 
+      {/* Stats preview */}
+      {hasEnoughData && (
+        <div className="grid grid-cols-3 gap-4">
+          <div className="bg-[#111111] border border-[#2a2a2a] rounded-xl p-4 text-center">
+            <div className="text-[#9ca3af] text-xs mb-1">Medie săpt. trecută</div>
+            <div className="text-xl font-mono font-bold">{stats.avgPrev7} kg</div>
+          </div>
+          <div className="bg-[#111111] border border-[#2a2a2a] rounded-xl p-4 text-center">
+            <div className="text-[#9ca3af] text-xs mb-1">Medie această săpt.</div>
+            <div className="text-xl font-mono font-bold text-[#22c55e]">{stats.avgLast7} kg</div>
+          </div>
+          <div className="bg-[#111111] border border-[#2a2a2a] rounded-xl p-4 text-center">
+            <div className="text-[#9ca3af] text-xs mb-1">Kcal actuale</div>
+            <div className="text-xl font-mono font-bold">{currentKcal}</div>
+          </div>
+        </div>
+      )}
+
       {!hasEnoughData ? (
         <div className="bg-[#f97316] bg-opacity-10 border border-[#f97316] text-[#f97316] p-6 rounded-xl fade-in flex items-start gap-4">
           <div className="text-2xl mt-1">⚠️</div>
           <div>
             <h3 className="font-bold text-lg mb-1">Date insuficiente</h3>
             <p className="text-[#f97316] opacity-90">
-              Adaugă cel puțin 3 înregistrări de greutate pentru a putea rula analiza AI. Momentan ai {weightEntries.length} înregistrări.
+              Adaugă cel puțin 1 înregistrare de greutate pentru a putea rula analiza AI. Momentan ai {weightEntries.length} înregistrări.
             </p>
           </div>
         </div>
@@ -221,6 +141,7 @@ export function AgentPage() {
           {!isLoading && !error && (
             <button
               onClick={handleRunAnalysis}
+              id="run-analysis-btn"
               className="bg-[#22c55e] hover:bg-[#16a34a] text-black font-semibold px-6 py-4 rounded-xl transition-colors text-lg flex items-center justify-center gap-2 shadow-[0_0_20px_rgba(34,197,94,0.2)] hover:shadow-[0_0_25px_rgba(34,197,94,0.3)] w-full sm:w-auto self-center"
             >
               🪄 Rulează Analiza Săptămânală

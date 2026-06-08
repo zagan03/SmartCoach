@@ -11,15 +11,16 @@ import { DashboardPage } from './pages/DashboardPage';
 import { WeightPage } from './pages/WeightPage';
 import { WorkoutPage } from './pages/WorkoutPage';
 import { AgentPage } from './pages/AgentPage';
+import { WorkoutCoachPage } from './pages/WorkoutCoachPage';
 
 function RootRedirect() {
   const { user, isLoadingAuth } = useAuth();
   const { profile, isLoading } = useApp();
 
   if (isLoadingAuth || isLoading) return null;
-  
+
   if (!user) return <Navigate to="/login" replace />;
-  return <Navigate to={profile ? "/dashboard" : "/profile"} replace />;
+  return <Navigate to={profile ? '/dashboard' : '/profile'} replace />;
 }
 
 function AppRoutes() {
@@ -32,46 +33,31 @@ function AppRoutes() {
           <Layout><ProfilePage /></Layout>
         </ProtectedRoute>
       } />
-      <Route
-        path="/dashboard"
-        element={
-          <ProtectedRoute>
-            <Layout>
-              <DashboardPage />
-            </Layout>
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/weight"
-        element={
-          <ProtectedRoute>
-            <Layout>
-              <WeightPage />
-            </Layout>
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/workouts"
-        element={
-          <ProtectedRoute>
-            <Layout>
-              <WorkoutPage />
-            </Layout>
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/agent"
-        element={
-          <ProtectedRoute>
-            <Layout>
-              <AgentPage />
-            </Layout>
-          </ProtectedRoute>
-        }
-      />
+      <Route path="/dashboard" element={
+        <ProtectedRoute>
+          <Layout><DashboardPage /></Layout>
+        </ProtectedRoute>
+      } />
+      <Route path="/weight" element={
+        <ProtectedRoute>
+          <Layout><WeightPage /></Layout>
+        </ProtectedRoute>
+      } />
+      <Route path="/workouts" element={
+        <ProtectedRoute>
+          <Layout><WorkoutPage /></Layout>
+        </ProtectedRoute>
+      } />
+      <Route path="/agent" element={
+        <ProtectedRoute>
+          <Layout><AgentPage /></Layout>
+        </ProtectedRoute>
+      } />
+      <Route path="/workout-coach" element={
+        <ProtectedRoute>
+          <Layout><WorkoutCoachPage /></Layout>
+        </ProtectedRoute>
+      } />
     </Routes>
   );
 }
