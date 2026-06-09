@@ -2,7 +2,7 @@
 
 > A full-stack AI-powered fitness tracking web application 
 
-[![CI/CD](https://github.com/YOUR_USERNAME/smartcoach/actions/workflows/ci-cd.yml/badge.svg)](https://github.com/YOUR_USERNAME/smartcoach/actions)
+Demo: https://www.youtube.com/watch?v=hqxt8aT4Jgg
 
 ---
 
