@@ -2,81 +2,83 @@ name: SmartCoach CI/CD
 
 on:
   push:
-    branches: [main, develop, 'feature/', 'fix/', 'bugfix/**']
+    branches: [main, develop, 'feature/**', 'fix/**', 'bugfix/**']
   pull_request:
     branches: [main, develop]
 
 jobs:
+  # ── Frontend ──────────────────────────────────────────────────────────────
   frontend:
-    name: Frontend - Install, Lint, Build
+    name: Frontend — Install, Lint, Build
     runs-on: ubuntu-latest
 
     steps:
-      
-name: Checkout repository
-      uses: actions/checkout@v4
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
-      
-name: Setup Node.js
-      uses: actions/setup-node@v4
-      with:
-        node-version: '22'
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
 
-      
-name: Install frontend dependencies
-      run: npm install
+      - name: Install frontend dependencies
+        run: npm ci
 
-      
-name: Lint frontend
-      run: npm run lint
-      continue-on-error: true
+      - name: Lint frontend
+        run: npm run lint
+        continue-on-error: true  # Lint warnings should not block the build
 
-      
-name: Create .env for build
-      run: echo "VITE_API_BASE_URL=http://localhost:3001/api" > .env
+      - name: Create .env for build
+        run: |
+          echo "VITE_API_BASE_URL=http://localhost:3001/api" > .env
 
-      
-name: Build frontend
-      run: npm run build
+      - name: Build frontend
+        run: npm run build
 
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-dist
+          path: dist/
+          retention-days: 7
+
+  # ── Backend ───────────────────────────────────────────────────────────────
   backend:
-    name: Backend - Install, Build, Test
+    name: Backend — Install, Build, Test
     runs-on: ubuntu-latest
 
-    defaults:
-      run:
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: backend/package-lock.json
+
+      - name: Install backend dependencies
+        run: npm ci
         working-directory: backend
 
-    steps:
-      
-name: Checkout repository
-      uses: actions/checkout@v4
+      - name: TypeScript check (build)
+        run: npm run build
+        working-directory: backend
 
-      
-name: Setup Node.js
-      uses: actions/setup-node@v4
-      with:
-        node-version: '22'
+      - name: Run backend tests
+        run: npm test
+        working-directory: backend
+        env:
+          NODE_ENV: test
+          DB_HOST: localhost
+          DB_PORT: 5432
+          DB_NAME: smartcoach_test
+          DB_USER: smartcoach
+          DB_PASSWORD: smartcoach
 
-      
-name: Install backend dependencies
-      run: npm install
-
-      
-name: Build backend
-      run: npm run build
-
-      
-name: Run backend tests
-      run: npm test
-      env:
-        NODE_ENV: test
-        DB_HOST: localhost
-        DB_PORT: 5432
-        DB_NAME: smartcoach_test
-        DB_USER: smartcoach
-        DB_PASSWORD: smartcoach
-
+  # ── Summary ───────────────────────────────────────────────────────────────
   summary:
     name: CI Summary
     runs-on: ubuntu-latest
@@ -84,15 +86,13 @@ name: Run backend tests
     if: always()
 
     steps:
-      
-name: Report status
-      run: |
-        echo "Frontend: ${{ needs.frontend.result }}"
-        echo "Backend: ${{ needs.backend.result }}"
-
+      - name: Report status
+        run: |
+          echo "Frontend: ${{ needs.frontend.result }}"
+          echo "Backend:  ${{ needs.backend.result }}"
           if [[ "${{ needs.frontend.result }}" == "success" && "${{ needs.backend.result }}" == "success" ]]; then
-            echo "All checks passed."
+            echo "✅ All checks passed!"
           else
-            echo "Some checks failed. See individual jobs for details."
+            echo "❌ Some checks failed. See individual jobs for details."
             exit 1
           fi

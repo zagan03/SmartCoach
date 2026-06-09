@@ -12,7 +12,7 @@ INSERT INTO users (id, email, password_hash)
 VALUES (
   '00000000-0000-0000-0000-000000000001',
   'demo@smartcoach.local',
-  '$2a$10$AauwQr5xWSSFWszEhA/.Huqg4.6IZY7s6XNFk0kATQVvqpU2q7W0a'
+  '$2b$10$rOzJqhLzIzgqWepxT4Bh7.fBh0bJfPbqOQqJhRLPYBLxg5vFlrXCy'
 )
 ON CONFLICT (email) DO NOTHING;
 
