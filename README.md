@@ -1,6 +1,6 @@
 # SmartCoach 🏋️
 
-> A full-stack AI-powered fitness tracking web application built for the MDS (Master in Data Science / Software Engineering) project.
+> A full-stack AI-powered fitness tracking web application 
 
 [![CI/CD](https://github.com/YOUR_USERNAME/smartcoach/actions/workflows/ci-cd.yml/badge.svg)](https://github.com/YOUR_USERNAME/smartcoach/actions)
 
