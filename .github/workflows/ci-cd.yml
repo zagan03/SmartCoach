@@ -23,7 +23,7 @@ jobs:
           cache: 'npm'
 
       - name: Install frontend dependencies
-        run: npm ci
+        run: npm install
 
       - name: Lint frontend
         run: npm run lint
@@ -60,7 +60,7 @@ jobs:
           cache-dependency-path: backend/package.json
 
       - name: Install backend dependencies
-        run: npm ci
+        run: npm install 
         working-directory: backend
 
       - name: TypeScript check (build)
