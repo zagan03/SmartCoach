@@ -1,132 +1,103 @@
 # SmartCoach 🏋️
 
-> A full-stack AI-powered fitness tracking web application 
+> A full-stack AI-powered fitness & nutrition tracking web application built with React, TypeScript, Node.js, PostgreSQL, and Groq LLM Agents.
 
-Demo: https://www.youtube.com/watch?v=hqxt8aT4Jgg
+🎥 **Video Demo:** [Watch on YouTube](https://www.youtube.com/watch?v=hqxt8aT4Jgg)
 
 ---
 
 ## Table of Contents
 
-1. [Project Description](#1-project-description)
-2. [Team Members](#2-team-members)
-3. [Main Features](#3-main-features)
-4. [Tech Stack](#4-tech-stack)
-5. [Architecture Overview](#5-architecture-overview)
-6. [Local Run Instructions](#6-local-run-instructions)
-7. [Docker Instructions](#7-docker-instructions)
-8. [Frontend Description](#8-frontend-description)
-9. [Backend Description](#9-backend-description)
-10. [AI Agents](#10-ai-agents)
-11. [User Stories & Backlog](#11-user-stories--backlog)
-12. [Diagrams](#12-diagrams)
-13. [Tests & Evals](#13-tests--evals)
-14. [CI/CD](#14-cicd)
-15. [Git Workflow](#15-git-workflow)
-16. [Bug Reports](#16-bug-reports)
-17. [AI Usage Report](#17-ai-usage-report)
-18. [Demo Video](#18-demo-video)
-19. [Known Limitations](#19-known-limitations)
-20. [Future Improvements](#20-future-improvements)
+1. [Project Overview](#1-project-overview)
+2. [Main Features](#2-main-features)
+3. [Tech Stack](#3-tech-stack)
+4. [System Architecture](#4-system-architecture)
+5. [Quick Start (Docker)](#5-quick-start-docker)
+6. [Local Setup Instructions](#6-local-setup-instructions)
+7. [Frontend Architecture](#7-frontend-architecture)
+8. [Backend & Database Architecture](#8-backend--database-architecture)
+9. [AI Agents & Safety Guardrails](#9-ai-agents--safety-guardrails)
+10. [Testing & LLM Evaluations](#10-testing--llm-evaluations)
+11. [CI/CD & Engineering Workflow](#11-cicd--engineering-workflow)
+12. [Documentation & System Diagrams](#12-documentation--system-diagrams)
+13. [Team & Contributions](#13-team--contributions)
+14. [Future Roadmap](#14-future-roadmap)
 
 ---
 
-## 1. Project Description
+## 1. Project Overview
 
-SmartCoach is a fitness tracking web application that allows users to:
+**SmartCoach** is an end-to-end fitness and nutrition platform designed to help users track workouts, monitor body-weight trends, and receive dynamic, AI-assisted coaching adjustments.
 
-- Track their daily weight and visualise progress on a chart
-- Log workout sessions with detailed exercise data (sets, reps, weights, cardio duration)
-- Receive **AI-generated nutrition recommendations** based on weekly weight progress
-- Generate **AI-powered personalised workout plans** based on their goal and fitness level
-- View a personalised dashboard with BMR, TDEE, calorie targets, and activity streaks
-
-The app was originally built with Firebase. For the MDS local demo, Firebase has been replaced with a **local Node.js + Express + PostgreSQL backend** that runs entirely offline.
-
----
-
-## 2. Team Members
-
-| Name | Role | Contributions |
-|---|---|---|
-| [Dudulea Andrei] | Full Stack Developer | Backend, frontend API integration, AI agents |
-| [Popescu Mihai Vlad] | Frontend Developer | UI components, routing, Recharts integration |
-| [Zagan Claudiu Gabriel] | Data / DevOps | PostgreSQL schema, Docker, CI/CD, documentation |
-
-
+Key capabilities include:
+- **Daily Weight & Biometrics Tracking** with interactive trend visualisation
+- **Structured Workout Logging** (sets, reps, load volume, and cardio duration)
+- **AI Nutrition & Progress Agent** that analyses rolling 7-day weight averages to dynamically adjust caloric and macronutrient targets
+- **AI Workout Coach Agent** that generates personalised training splits tailored to available equipment and physical constraints
+- **Real-time Analytics Dashboard** computing BMR, TDEE, caloric targets, and activity streaks
 
 ---
 
-## 3. Main Features
+## 2. Main Features
 
 | Feature | Status |
 |---|---|
-| Demo login (no Firebase required) | ✅ Implemented |
-| 3-step profile creation wizard | ✅ Implemented |
-| Weight journal with Recharts chart | ✅ Implemented |
-| Workout logging with exercises | ✅ Implemented |
-| Workout Coach AI Agent (Agent 1) | ✅ Implemented |
-| Nutrition / Progress AI Agent (Agent 2) | ✅ Implemented |
-| AI agents work without API key (fallback) | ✅ Implemented |
-| Agent request logging to `agent_logs` | ✅ Implemented |
-| Calorie safety guardrail (≥1200 kcal) | ✅ Implemented |
-| BMR / TDEE / Calorie target dashboard | ✅ Implemented |
-| Streak badge | ✅ Implemented |
-| PostgreSQL backend with schema + seed | ✅ Implemented |
-| Backend input validation | ✅ Implemented |
-| Automated tests (Vitest + Supertest) | ✅ Implemented |
-| AI agent evals (10 cases × 2 agents) | ✅ Implemented |
-| CI/CD pipeline (GitHub Actions) | ✅ Implemented |
-| Docker Compose (postgres + backend + frontend) | ✅ Implemented |
-| MDS documentation (diagrams, user stories, bug reports) | ✅ Implemented |
+| 3-step user onboarding & biometric profile wizard | ✅ Implemented |
+| Weight journal with interactive Recharts trendlines | ✅ Implemented |
+| Workout session logging with exercise breakdown | ✅ Implemented |
+| Workout Coach AI Agent (Groq LLM + deterministic fallback) | ✅ Implemented |
+| Nutrition & Progress AI Agent with rolling 7-day analysis | ✅ Implemented |
+| Calorie safety guardrails (≥1200 kcal floor & ±300 kcal/week cap) | ✅ Implemented |
+| Audit logging of all AI prompts & responses (`agent_logs`) | ✅ Implemented |
+| BMR / TDEE / Macronutrient target dashboard & streak tracker | ✅ Implemented |
+| Relational PostgreSQL schema with automated seed data | ✅ Implemented |
+| Server-side payload validation & error handling | ✅ Implemented |
+| Automated integration test suite (Vitest + Supertest) | ✅ Implemented |
+| Automated LLM Agent Evaluation suite (20 test cases) | ✅ Implemented |
+| Multi-container Docker Compose orchestration | ✅ Implemented |
+| Automated CI/CD pipeline (GitHub Actions) | ✅ Implemented |
 
 ---
 
-## 4. Tech Stack
+## 3. Tech Stack
+
+### Backend & Data
+- **Node.js 20** + **TypeScript**
+- **Express 4** (REST API architecture)
+- **PostgreSQL 16** (`pg` connection pooling, relational schema design)
+- **bcryptjs** & **uuid**
+
+### AI & LLM Engineering
+- **Groq API** (`llama-3.3-70b-versatile`) for structured JSON generation
+- **Deterministic Fallback Engine** ensuring 100% availability without external API keys
+- **Custom LLM Evaluation Pipeline** validating schema compliance and safety guardrails
 
 ### Frontend
-- **React 18** + **TypeScript**
-- **Vite** (build tool)
-- **Tailwind CSS** (styling)
-- **Recharts** (weight chart)
-- **React Router v7** (routing)
+- **React 18** + **TypeScript** (Vite)
+- **Tailwind CSS** (responsive dark-theme UI)
+- **Recharts** (data visualisation)
+- **React Router v7**
 
-### Backend
-- **Node.js 20** + **TypeScript**
-- **Express 4** (HTTP server)
-- **PostgreSQL 16** (database)
-- **pg** (PostgreSQL client)
-- **bcryptjs** (password hashing)
-- **uuid** (ID generation)
-
-### AI Agents
-- **Groq API** (`llama-3.3-70b-versatile`) — optional, for real LLM responses
-- **Deterministic fallback** — always works without API key
-
-
-### Testing
-- **Vitest** (test runner)
-- **Supertest** (HTTP integration tests)
-
-### DevOps
-- **GitHub Actions** (CI/CD)
-- **Docker + Docker Compose** (containerisation)
+### DevOps & Quality Assurance
+- **Docker & Docker Compose** (multi-service containerisation)
+- **GitHub Actions** (continuous integration for build, linting, and testing)
+- **Vitest** & **Supertest** (unit and HTTP integration testing)
 
 ---
 
-## 5. Architecture Overview
+## 4. System Architecture
 
-```
+```text
 SmartCoach
 ├── React Frontend (:5173)
-│   ├── AuthContext → POST /api/auth/demo-login
-│   ├── AppContext → REST API calls
-│   └── Pages: Login, Profile, Dashboard, Weight, Workouts, AI Agents
+│   ├── AuthContext → Session & authentication state
+│   ├── AppContext  → Centralised state & REST API integration
+│   └── Pages       → Dashboard, Weight, Workouts, AI Coach, Nutrition Agent
 │
 ├── Express Backend (:3001)
-│   ├── Routes: auth, profile, workouts, progress, agents
-│   ├── Controllers: validation + DB queries
-│   └── Services: Workout Coach Agent, Nutrition Agent
+│   ├── Routes      → /api/auth, /api/profile, /api/workouts, /api/progress, /api/agents
+│   ├── Controllers → Request validation, business logic & SQL queries
+│   └── Services    → Workout Coach Agent & Nutrition Progress Agent
 │
 └── PostgreSQL (:5432)
     ├── users, profiles
@@ -134,113 +105,104 @@ SmartCoach
     └── agent_logs
 ```
 
-See full diagrams in [`docs/diagrams/`](docs/diagrams/).
+Detailed Mermaid architecture diagrams are available in [`docs/diagrams/`](docs/diagrams/).
 
 ---
 
-## 6. Local Run Instructions
+## 5. Quick Start (Docker)
 
-### Prerequisites
-- Node.js ≥ 20
-- PostgreSQL ≥ 14
-
-### Quick Start
-
-```bash
-# 1. Set up PostgreSQL
-psql postgres -c "CREATE USER smartcoach WITH PASSWORD 'smartcoach';"
-psql postgres -c "CREATE DATABASE smartcoach OWNER smartcoach;"
-psql postgresql://smartcoach:smartcoach@localhost:5432/smartcoach -f backend/sql/schema.sql
-psql postgresql://smartcoach:smartcoach@localhost:5432/smartcoach -f backend/sql/seed.sql
-
-# 2. Backend
-cd backend
-cp .env.example .env
-npm install
-npm run dev       # http://localhost:3001
-
-# 3. Frontend (new terminal, from project root)
-cp .env.example .env
-npm install
-npm run dev       # http://localhost:5173
-```
-
-**Demo credentials:** `demo@smartcoach.local` / `demo1234`
-
-See [`docs/local-run.md`](docs/local-run.md) for detailed instructions.
-
----
-
-## 7. Docker Instructions
+Run the entire stack (PostgreSQL + Express Backend + React Frontend) with a single command:
 
 ```bash
 docker compose up --build
 ```
 
-- Frontend: [http://localhost:5173](http://localhost:5173)
-- Backend: [http://localhost:3001/api/health](http://localhost:3001/api/health)
-- PostgreSQL auto-initialised with schema + seed data
+- **Frontend UI:** [http://localhost:5173](http://localhost:5173)
+- **Backend Healthcheck:** [http://localhost:3001/api/health](http://localhost:3001/api/health)
+- **Database:** PostgreSQL 16 (automatically initialised with `schema.sql` and `seed.sql`)
 
-Stop: `docker compose down`
+To stop all containers:
+
+```bash
+docker compose down
+```
 
 ---
 
-## 8. Frontend Description
+## 6. Local Setup Instructions
 
-The frontend is a React + TypeScript SPA with a dark theme and Tailwind CSS.
+### Prerequisites
+- Node.js ≥ 20
+- PostgreSQL ≥ 14
 
-### Pages
+### Step-by-Step Setup
+
+```bash
+# 1. Initialise PostgreSQL database & seed data
+psql postgres -c "CREATE USER smartcoach WITH PASSWORD 'smartcoach';"
+psql postgres -c "CREATE DATABASE smartcoach OWNER smartcoach;"
+psql postgresql://smartcoach:smartcoach@localhost:5432/smartcoach -f backend/sql/schema.sql
+psql postgresql://smartcoach:smartcoach@localhost:5432/smartcoach -f backend/sql/seed.sql
+
+# 2. Start the Backend API
+cd backend
+cp .env.example .env
+npm install
+npm run dev        # Runs on http://localhost:3001
+
+# 3. Start the Frontend SPA (new terminal, from project root)
+cp .env.example .env
+npm install
+npm run dev        # Runs on http://localhost:5173
+```
+
+**Demo Credentials:** `demo@smartcoach.local` / `demo1234`  
+See [`docs/local-run.md`](docs/local-run.md) for full configuration details.
+
+---
+
+## 7. Frontend Architecture
+
 | Route | Component | Description |
 |---|---|---|
-| `/login` | `LoginPage` | Demo login + email/password form |
-| `/profile` | `ProfilePage` | 3-step profile wizard / edit mode |
-| `/dashboard` | `DashboardPage` | Stats overview + AI analysis preview |
-| `/weight` | `WeightPage` | Weight journal + Recharts chart |
-| `/workouts` | `WorkoutPage` | Workout logging + history |
-| `/workout-coach` | `WorkoutCoachPage` | **Workout Coach AI Agent** (Agent 1) |
-| `/agent` | `AgentPage` | **Nutrition AI Agent** (Agent 2) |
+| `/login` | `LoginPage` | Authentication & instant demo login |
+| `/profile` | `ProfilePage` | 3-step biometric onboarding & profile editor |
+| `/dashboard` | `DashboardPage` | BMR/TDEE overview, streak counter & AI insights |
+| `/weight` | `WeightPage` | Daily weight logs & Recharts progression graph |
+| `/workouts` | `WorkoutPage` | Exercise logger & workout history |
+| `/workout-coach` | `WorkoutCoachPage` | Interactive Workout Coach AI Agent |
+| `/agent` | `AgentPage` | Interactive Nutrition & Caloric Adjustment Agent |
 
-### Key Design Decisions
-- **Firebase removed** — `src/firebase.ts` is preserved but commented out. Auth and data go through the local REST API.
-- **Context pattern** — `AuthContext` handles session; `AppContext` handles all data operations.
-- **API service layer** — `src/services/api.ts` provides typed `fetch()` wrappers for all endpoints.
+- **Typed API Layer:** `src/services/api.ts` encapsulates all HTTP requests with strict TypeScript interfaces.
 
 ---
 
-## 9. Backend Description
+## 8. Backend & Database Architecture
 
-The backend is a Node.js + Express + TypeScript API server.
-
-### Structure
+```text
+backend/
+├── src/
+│   ├── server.ts                 — Express app & middleware configuration
+│   ├── db.ts                     — PostgreSQL connection pool
+│   ├── routes/                   — REST endpoint definitions
+│   ├── controllers/              — Input validation & SQL execution
+│   ├── services/                 — LLM Agent orchestration & fallback logic
+│   │   ├── workout-agent.service.ts
+│   │   └── nutrition-agent.service.ts
+│   ├── models/types.ts           — Shared TypeScript domain models
+│   └── __tests__/                — Vitest + Supertest integration suites
+└── sql/
+    ├── schema.sql                — Relational DDL schema & constraints
+    └── seed.sql                  — Initial demo dataset
 ```
-backend/src/
-├── server.ts           — Express app
-├── db.ts               — PostgreSQL pool
-├── routes/             — Route definitions
-├── controllers/        — Business logic + validation
-├── services/           — AI agent services
-│   ├── workout-agent.service.ts
-│   └── nutrition-agent.service.ts
-├── models/types.ts     — Shared TypeScript types
-└── __tests__/          — Vitest + Supertest tests
-backend/sql/
-├── schema.sql          — Database schema
-└── seed.sql            — Demo data
-```
-
-### Authentication (Demo)
-`POST /api/auth/demo-login` with email + password. Returns `{ id, email, createdAt }`.
-The frontend stores this in `localStorage`. No JWT — suitable for local demo only.
 
 ---
 
-## 10. AI Agents
+## 9. AI Agents & Safety Guardrails
 
-### Agent 1 — Workout Coach
+### Agent 1 — Workout Coach (`POST /api/agents/workout-coach`)
 
-**Endpoint:** `POST /api/agents/workout-coach`
-
-**Input:**
+**Input Payload:**
 ```json
 {
   "userId": "uuid",
@@ -249,30 +211,25 @@ The frontend stores this in `localStorage`. No JWT — suitable for local demo o
 }
 ```
 
-**Output:**
+**Output Payload:**
 ```json
 {
-  "warmup": ["step1", "step2", ...],
+  "warmup": ["step1", "step2"],
   "mainWorkout": [{ "name": "Squat", "sets": 4, "reps": 6, "notes": "..." }],
-  "cooldown": ["step1", ...],
+  "cooldown": ["step1"],
   "weeklyPlan": "Follow a 4-day split...",
   "tips": "Focus on progressive overload...",
   "generatedAt": "2026-06-08T..."
 }
 ```
 
-**Behaviour:**
-- If `GROQ_API_KEY` is set → calls Groq API with structured JSON prompt
-- Otherwise → deterministic templates per goal (weight_loss/weight_gain/maintenance)
-- Volume reduced for sedentary users
+- Uses **Groq (`llama-3.3-70b-versatile`)** with structured JSON schema enforcement when `GROQ_API_KEY` is provided, falling back seamlessly to a deterministic rule engine when offline.
 
 ---
 
-### Agent 2 — Nutrition / Progress
+### Agent 2 — Nutrition & Progress (`POST /api/agents/nutrition-progress`)
 
-**Endpoint:** `POST /api/agents/nutrition-progress`
-
-**Output:**
+**Output Payload:**
 ```json
 {
   "calories": 1800,
@@ -288,142 +245,69 @@ The frontend stores this in `localStorage`. No JWT — suitable for local demo o
 }
 ```
 
-**Guardrails:**
-- Calories never go below **1200 kcal**
-- Caloric adjustment capped at **±300 kcal/week**
-- No dangerous dietary claims
-
-Both agents log all requests/responses to the `agent_logs` table.
+- **Safety Guardrails:** Enforces a strict minimum threshold of **1200 kcal/day** and caps weekly adjustments at **±300 kcal** to prevent unsafe recommendations.
+- **Observability:** All agent requests and responses are persisted in the `agent_logs` table.
 
 ---
 
-## 11. User Stories & Backlog
+## 10. Testing & LLM Evaluations
 
-- [User Stories (20 stories across 5 epics)](docs/user-stories.md)
-- [Project Backlog (Done / In Progress / To Do / Future)](docs/backlog.md)
-
----
-
-## 12. Diagrams
-
-| Diagram | Description |
-|---|---|
-| [Component Architecture](docs/diagrams/component-architecture.md) | Frontend and backend component graphs |
-| [Backend Architecture & ERD](docs/diagrams/backend-architecture.md) | DB schema + REST API table |
-| [AI Agent Workflow](docs/diagrams/ai-agent-workflow.md) | Sequence diagrams for both agents |
-| [Use Case Diagram](docs/diagrams/use-case-diagram.md) | All user interactions |
-
-All diagrams use **Mermaid** syntax and render on GitHub.
-
----
-
-## 13. Tests & Evals
-
-### Backend Tests
-
+### Automated Backend Tests
 ```bash
 cd backend && npm test
 ```
 
-| Test file | What it covers |
+| Test Suite | Coverage |
 |---|---|
-| `health.test.ts` | `GET /api/health` → 200 |
-| `workout-agent.test.ts` | Agent 1 structure + safety |
-| `nutrition-agent.test.ts` | Agent 2 structure + 1200 guardrail |
-| `progress.validation.test.ts` | Weight input validation |
-| `workout.validation.test.ts` | Exercise input validation |
+| `health.test.ts` | Healthcheck endpoint verification (`GET /api/health`) |
+| `workout-agent.test.ts` | Workout Coach payload structure & constraint handling |
+| `nutrition-agent.test.ts` | Nutrition Agent calculations & 1200 kcal safety guardrail |
+| `progress.validation.test.ts` | Boundary validation for weight & biometric entries |
+| `workout.validation.test.ts` | Payload validation for workout & exercise logs |
 
-### AI Agent Evals
-
-- [Workout Agent Evals](evals/workout-agent-evals.json) — 10 cases
-- [Nutrition Agent Evals](evals/nutrition-agent-evals.json) — 10 cases
-- [Eval Strategy & Results](evals/sample-eval-results.md)
-- [Testing Strategy](docs/testing-and-evals.md)
-
----
-
-## 14. CI/CD
-
-GitHub Actions pipeline at [`.github/workflows/ci-cd.yml`](.github/workflows/ci-cd.yml).
-
-**Jobs:**
-1. **Frontend** — `npm ci` → lint → `npm run build`
-2. **Backend** — `npm ci` → TypeScript build → `npm test`
-3. **Summary** — reports combined pass/fail
-
-Triggers on: `push` to `main`, `develop`, `feature/**`, `fix/**`; `pull_request` to `main`, `develop`.
+### AI Agent Evaluations (`evals/`)
+- [Workout Agent Evals](evals/workout-agent-evals.json) — 10 test scenarios
+- [Nutrition Agent Evals](evals/nutrition-agent-evals.json) — 10 test scenarios
+- [Evaluation Results & Metrics](evals/sample-eval-results.md)
+- [Testing & Evaluation Documentation](docs/testing-and-evals.md)
 
 ---
 
-## 15. Git Workflow
+## 11. CI/CD & Engineering Workflow
 
-- [Full Git Workflow Documentation](docs/git-workflow.md)
-
-**Branch strategy:** `main` → `develop` → `feature/*` / `fix/*`
-
-**Commit convention:** `feat(scope): description` / `fix(scope): description`
-
-**Recommended PRs to create:**
-1. `fix/remove-firebase-local-demo` → resolves Bug #1
-2. `fix/workout-duration-validation` → resolves Bug #2
-3. `fix/agent-input-validation` → resolves Bug #3
+- **GitHub Actions Pipeline ([`.github/workflows/ci-cd.yml`](.github/workflows/ci-cd.yml)):** Automatically runs frontend builds/linting and backend TypeScript compilation + Vitest test suites on every push and pull request across `main`, `develop`, `feature/**`, and `fix/**`.
+- **Git Workflow:** Feature-branch workflow with Pull Request reviews and conventional commits (`feat:`, `fix:`, `docs:`). See [`docs/git-workflow.md`](docs/git-workflow.md) and [`docs/bug-reports.md`](docs/bug-reports.md).
 
 ---
 
-## 16. Bug Reports
+## 12. Documentation & System Diagrams
 
-- [Bug Reports (3 resolved bugs)](docs/bug-reports.md)
-
-| # | Bug | Resolution |
-|---|---|---|
-| 1 | `FirebaseError: auth/invalid-api-key` on startup | Firebase removed, replaced with local backend |
-| 2 | Workout duration accepts 0 or negative values | Server-side validation added |
-| 3 | AI agent accepts empty userId / missing profile | Input validation + 404 guard added |
-
----
-
-## 17. AI Usage Report
-
-- [Full AI Usage Report](docs/AI_USAGE_REPORT.md)
-
-**Tools used:**
-- **Antigravity (Claude)** — backend implementation, context rewrite, tests, documentation
-- **ChatGPT** — planning, architecture decisions, presentation preparation
-- **Groq API** — optional runtime LLM for agent responses
-
-All AI-generated code was reviewed and validated by the team.
+| Document | Description |
+|---|---|
+| [Component Architecture](docs/diagrams/component-architecture.md) | Frontend & backend module dependency graphs |
+| [Backend Architecture & ERD](docs/diagrams/backend-architecture.md) | PostgreSQL Entity-Relationship Diagram & REST API specification |
+| [AI Agent Workflow](docs/diagrams/ai-agent-workflow.md) | Sequence diagrams for LLM prompt & fallback pipelines |
+| [Use Case Diagram](docs/diagrams/use-case-diagram.md) | End-to-end user interaction flows |
+| [User Stories & Backlog](docs/user-stories.md) | 20 user stories across 5 product epics |
 
 ---
 
-## 18. Demo Video
+## 13. Team & Contributions
 
-> 📽️ **TODO:** Record a demo video and upload to Google Drive / YouTube.
-> Add the link here before submission.
+Developed collaboratively using an Agile workflow, Pull Requests, and peer Code Reviews:
 
-In the meantime, see [`docs/demo.md`](docs/demo.md) for a step-by-step demo guide.
-
----
-
-## 19. Known Limitations
-
-- **Authentication** is demo-friendly only (localStorage, no JWT expiry)
-- **No account registration** via UI — only the seeded demo user works
-- **AI agents** use deterministic templates when no Groq API key is set
-- **Frontend tests** not yet implemented
-- **E2E tests** not yet implemented
-- **Agent logs** are written to DB but not displayed in the UI
+| Team Member | Focus Areas |
+|---|---|
+| **Zagan Claudiu-Gabriel** | Backend API, PostgreSQL Schema & Queries, AI Agent Services & Evals, Docker, CI/CD |
+| **Dudulea Andrei** | Full-Stack Architecture, REST API Integration, AI Agent Services, State Management |
+| **Popescu Mihai Vlad** | Frontend Architecture, UI Components, Routing, Data Visualisation (Recharts) |
 
 ---
 
-## 20. Future Improvements
+## 14. Future Roadmap
 
-- JWT-based authentication for production
-- Account registration endpoint and UI
-- Real LLM integration (Groq / OpenAI) always enabled (with rate limiting)
-- Frontend component tests with Vitest + React Testing Library
-- E2E tests with Playwright
-- Progress photos feature
-- Mobile-responsive PWA wrapper
-- Wearable/health data integration (Apple Health, Google Fit)
-- Advanced strength progress charts (PR tracking, volume trends)
-- Meal tracking alongside weight entries
+- JWT authentication with refresh tokens and full user registration flow
+- Rate limiting and caching layer for LLM API calls
+- End-to-end (E2E) browser testing with Playwright
+- Wearable health data sync (Apple Health / Google Fit)
+- Progressive Web App (PWA) offline support
